@@ -1,0 +1,118 @@
+.plans-section {
+  background-color: var(--light-bg);
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.plan-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  padding: 40px 30px;
+  text-align: center;
+  border-top: 5px solid var(--primary-color);
+  transition: var(--transition);
+  position: relative;
+}
+
+.plan-card:hover {
+  transform: translateY(-10px);
+  box-shadow: var(--shadow-lg);
+  border-top-color: var(--accent-color);
+}
+
+.plan-card.featured {
+  background: var(--primary-color);
+  color: white;
+  transform: scale(1.05);
+  border-top-color: var(--accent-color);
+}
+
+.plan-card.featured h3 {
+  color: white;
+}
+
+.popular-badge {
+  background: var(--accent-color);
+  color: var(--primary-color);
+  display: inline-block;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.plan-price {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  font-weight: 700;
+  margin: 20px 0;
+  font-family: var(--font-heading);
+}
+
+.plan-price span {
+  font-size: 1rem;
+  color: var(--text-color);
+  font-weight: 400;
+}
+
+.plan-card.featured .plan-price {
+  color: var(--accent-color);
+}
+
+.plan-card.featured .plan-price span {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.plan-features {
+  margin: 30px 0;
+  padding: 0;
+  text-align: left;
+}
+
+.plan-features li {
+  margin-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 15px;
+  list-style: none;
+}
+
+.plan-features li:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.plan-card.featured .plan-features li {
+  border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.plan-card .btn {
+  margin-top: 20px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .plans-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-card.featured {
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 480px) {
+  .plan-card {
+    padding: 30px 20px;
+  }
+
+  .plan-price {
+    font-size: 2rem;
+  }
+}

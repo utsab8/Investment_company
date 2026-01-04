@@ -1,0 +1,232 @@
+/* Page Header */
+.page-header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.page-header h1 {
+  color: white;
+  font-size: 3rem;
+  margin-bottom: 10px;
+}
+
+.page-header p {
+  opacity: 0.8;
+  font-size: 1.1rem;
+}
+
+/* Two Column Grid */
+.two-column-grid {
+  display: flex;
+  gap: 50px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.two-column-grid > div:first-child {
+  flex: 1;
+  min-width: 300px;
+}
+
+.two-column-grid > div:first-child h4 {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.two-column-grid > div:first-child h2 {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
+
+.mission-vision-grid {
+  flex: 1;
+  min-width: 300px;
+  display: grid;
+  gap: 20px;
+}
+
+.mission-card,
+.vision-card {
+  background: var(--light-bg);
+  padding: 30px;
+  border-left: 4px solid var(--accent-color);
+}
+
+.vision-card {
+  border-left-color: var(--primary-color);
+}
+
+.mission-card h3,
+.vision-card h3 {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  border-left: 2px solid var(--accent-color);
+  padding-left: 30px;
+}
+
+.timeline-item {
+  position: relative;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -39px;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px var(--accent-color);
+}
+
+.timeline-item h4 {
+  margin-bottom: 5px;
+}
+
+.timeline-item p {
+  font-size: 0.95rem;
+}
+
+/* Compliance Card */
+.compliance-card {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-color);
+  margin-bottom: 40px;
+}
+
+.compliance-content {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.compliance-content h3 {
+  margin-bottom: 20px;
+}
+
+.compliance-content p {
+  margin-bottom: 30px;
+}
+
+.compliance-badges {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.compliance-badges > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compliance-badges i {
+  font-size: 2rem;
+}
+
+/* Team Grid */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+}
+
+.team-card {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+}
+
+.team-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+.team-card img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+}
+
+.team-info {
+  padding: 20px;
+  text-align: center;
+}
+
+.team-info h3 {
+  margin-bottom: 5px;
+}
+
+.team-info p {
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .two-column-grid > div:first-child h2 {
+    font-size: 2rem;
+  }
+
+  .timeline {
+    padding-left: 25px;
+  }
+
+  .timeline-dot {
+    left: -33px;
+  }
+
+  .compliance-card {
+    padding: 30px 20px;
+  }
+
+  .compliance-badges {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: 40px 0;
+  }
+
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .two-column-grid {
+    flex-direction: column;
+  }
+
+  .mission-vision-grid {
+    min-width: 100%;
+  }
+}
