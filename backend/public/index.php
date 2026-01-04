@@ -2,6 +2,21 @@
 
 // Basic lightweight router for API
 
+$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$path = trim($uri, '/');
+
+// If it's an admin panel request, let PHP serve it directly (don't route it)
+if (strpos($path, 'admin/') === 0 || $path === 'admin') {
+    // Let PHP's built-in server handle admin files directly
+    // Return false to tell PHP server to serve the file if it exists
+    return false;
+}
+
+// If it's a direct file request (has extension), don't route it
+if (preg_match('/\.(php|html|css|js|png|jpg|jpeg|gif|ico|svg)$/i', $path)) {
+    return false;
+}
+
 $config = require __DIR__ . '/../config.php';
 
 header('Access-Control-Allow-Origin: ' . $config['cors']['allowed_origin']);
@@ -18,11 +33,9 @@ require __DIR__ . '/../helpers.php';
 
 $pdo = get_pdo($config['db']);
 
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Normalize path (strip leading slash and possible "api/")
-$path = trim($uri, '/');
 $segments = explode('/', $path);
 if ($segments[0] === 'api') {
     array_shift($segments);
