@@ -30,40 +30,161 @@ $pages = [
 $lang = $_GET['lang'] ?? 'en';
 $page = $_GET['page'] ?? 'home';
 $status = '';
-$jsonText = '';
+$contentData = [];
+
+// Function to generate form fields from JSON structure
+function generateFormFields($data, $prefix = '', $level = 0) {
+    $html = '';
+    
+    if (is_array($data)) {
+        // Check if it's a numeric/indexed array (list)
+        $keys = array_keys($data);
+        $isIndexedArray = !empty($keys) && $keys === range(0, count($data) - 1);
+        
+        if ($isIndexedArray) {
+            // It's an array/list
+            $sectionName = $prefix ? basename(str_replace(['[', ']'], ['_', ''], $prefix)) : 'items';
+            $html .= '<div class="array-container" data-prefix="' . htmlspecialchars($prefix, ENT_QUOTES, 'UTF-8') . '">';
+            $html .= '<div class="array-header">';
+            $html .= '<label class="section-label">' . htmlspecialchars(ucwords(str_replace(['_', '-'], ' ', $sectionName)), ENT_QUOTES, 'UTF-8') . ' (List)</label>';
+            $html .= '<button type="button" class="btn-add-item" onclick="addArrayItem(\'' . htmlspecialchars($prefix, ENT_QUOTES, 'UTF-8') . '\')"><i class="fas fa-plus"></i> Add Item</button>';
+            $html .= '</div>';
+            
+            foreach ($data as $index => $item) {
+                $itemPrefix = $prefix ? $prefix . '[' . $index . ']' : '[' . $index . ']';
+                
+                if (is_array($item)) {
+                    // Object in array
+                    $html .= '<div class="array-item">';
+                    $html .= '<div class="array-item-header">';
+                    $html .= '<span>Item ' . ($index + 1) . '</span>';
+                    $html .= '<button type="button" class="btn-remove-item" onclick="removeArrayItem(this)"><i class="fas fa-times"></i></button>';
+                    $html .= '</div>';
+                    $html .= '<div class="array-item-content">';
+                    $html .= generateFormFields($item, $itemPrefix, $level + 1);
+                    $html .= '</div>';
+                    $html .= '</div>';
+                } else {
+                    // Simple value in array
+                    $html .= '<div class="array-item">';
+                    $html .= '<div class="form-group">';
+                    $html .= '<label>Item ' . ($index + 1) . '</label>';
+                    $html .= '<div style="display: flex; gap: 8px;">';
+                    $html .= '<input type="text" name="' . htmlspecialchars($itemPrefix, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars(is_string($item) ? $item : json_encode($item), ENT_QUOTES, 'UTF-8') . '" class="form-input" style="flex: 1;">';
+                    $html .= '<button type="button" class="btn-remove-item" onclick="removeArrayItem(this)"><i class="fas fa-times"></i></button>';
+                    $html .= '</div>';
+                    $html .= '</div>';
+                    $html .= '</div>';
+                }
+            }
+            $html .= '</div>';
+        } else {
+            // It's an object/associative array
+            foreach ($data as $key => $value) {
+                $fieldName = $prefix ? $prefix . '[' . $key . ']' : $key;
+                $fieldLabel = ucwords(str_replace(['_', '-'], ' ', $key));
+                
+                if (is_array($value)) {
+                    // Nested object or array
+                    $html .= '<div class="form-section" style="margin-left: ' . ($level * 20) . 'px;">';
+                    $html .= '<div class="section-header">';
+                    $html .= '<label class="section-label"><i class="fas fa-folder"></i> ' . htmlspecialchars($fieldLabel, ENT_QUOTES, 'UTF-8') . '</label>';
+                    $html .= '</div>';
+                    $html .= generateFormFields($value, $fieldName, $level + 1);
+                    $html .= '</div>';
+                } else {
+                    // Simple field
+                    $html .= '<div class="form-group">';
+                    $html .= '<label for="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($fieldLabel, ENT_QUOTES, 'UTF-8') . '</label>';
+                    
+                    // Use textarea for longer text
+                    if (is_string($value) && strlen($value) > 100) {
+                        $html .= '<textarea name="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" id="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" class="form-textarea" rows="4">' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '</textarea>';
+                    } else {
+                        $html .= '<input type="text" name="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" id="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '" class="form-input">';
+                    }
+                    $html .= '</div>';
+                }
+            }
+        }
+    } else {
+        // Simple value
+        $html .= '<div class="form-group">';
+        $html .= '<input type="text" name="' . htmlspecialchars($prefix, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($data, ENT_QUOTES, 'UTF-8') . '" class="form-input">';
+        $html .= '</div>';
+    }
+    
+    return $html;
+}
+
+// Function to normalize arrays (convert numeric keys to indexed arrays)
+function normalizeArrays($arr) {
+    if (!is_array($arr)) {
+        return $arr;
+    }
+    
+    $keys = array_keys($arr);
+    $allNumeric = !empty($keys) && array_reduce($keys, function($carry, $key) {
+        return $carry && (is_numeric($key) || (is_string($key) && ctype_digit($key)));
+    }, true);
+    
+    $normalized = [];
+    foreach ($arr as $k => $v) {
+        $normalized[$k] = is_array($v) ? normalizeArrays($v) : $v;
+    }
+    
+    // If all keys are numeric and sequential, return as indexed array
+    if ($allNumeric && !empty($keys)) {
+        $sortedKeys = array_map('intval', $keys);
+        sort($sortedKeys);
+        if ($sortedKeys === range(0, count($keys) - 1)) {
+            return array_values($normalized);
+        }
+    }
+    
+    return $normalized;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lang = $_POST['lang'] ?? 'en';
     $page = $_POST['page'] ?? 'home';
-    $jsonText = $_POST['json'] ?? '';
-
-    $decoded = json_decode($jsonText, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        $status = 'Invalid JSON: ' . json_last_error_msg();
+    
+    // PHP automatically parses bracket notation in form field names
+    // So $_POST already has the nested structure, we just need to remove special fields
+    $formData = $_POST;
+    unset($formData['lang'], $formData['page']);
+    
+    // Normalize arrays (convert numeric keys to indexed arrays where appropriate)
+    $formData = normalizeArrays($formData);
+    
+    // Wrap in page key
+    $finalData = [$page => $formData];
+    
+    $stmt = $pdo->prepare('SELECT id FROM content_blocks WHERE page = :page AND lang = :lang LIMIT 1');
+    $stmt->execute(['page' => $page, 'lang' => $lang]);
+    $existing = $stmt->fetch();
+    
+    if ($existing) {
+        $update = $pdo->prepare('UPDATE content_blocks SET data = :data, updated_at = NOW() WHERE id = :id');
+        $update->execute(['data' => json_encode($finalData, JSON_UNESCAPED_UNICODE), 'id' => $existing['id']]);
     } else {
-        $stmt = $pdo->prepare('SELECT id FROM content_blocks WHERE page = :page AND lang = :lang LIMIT 1');
-        $stmt->execute(['page' => $page, 'lang' => $lang]);
-        $existing = $stmt->fetch();
-        if ($existing) {
-            $update = $pdo->prepare('UPDATE content_blocks SET data = :data, updated_at = NOW() WHERE id = :id');
-            $update->execute(['data' => json_encode($decoded), 'id' => $existing['id']]);
-        } else {
-            $insert = $pdo->prepare('INSERT INTO content_blocks (page, lang, data, updated_at) VALUES (:page, :lang, :data, NOW())');
-            $insert->execute(['page' => $page, 'lang' => $lang, 'data' => json_encode($decoded)]);
-        }
-        $status = 'Content saved successfully!';
+        $insert = $pdo->prepare('INSERT INTO content_blocks (page, lang, data, updated_at) VALUES (:page, :lang, :data, NOW())');
+        $insert->execute(['page' => $page, 'lang' => $lang, 'data' => json_encode($finalData, JSON_UNESCAPED_UNICODE)]);
     }
-}
-
-// Load current content
-$stmt = $pdo->prepare('SELECT data FROM content_blocks WHERE page = :page AND lang = :lang LIMIT 1');
-$stmt->execute(['page' => $page, 'lang' => $lang]);
-$row = $stmt->fetch();
-if ($row) {
-    $jsonText = $jsonText ?: json_encode(json_decode($row['data'], true), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    
+    $status = 'Content saved successfully!';
+    $contentData = $finalData;
 } else {
-    // empty template
-    $jsonText = $jsonText ?: json_encode([$page => new stdClass()], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    // Load current content
+    $stmt = $pdo->prepare('SELECT data FROM content_blocks WHERE page = :page AND lang = :lang LIMIT 1');
+    $stmt->execute(['page' => $page, 'lang' => $lang]);
+    $row = $stmt->fetch();
+    
+    if ($row) {
+        $contentData = json_decode($row['data'], true);
+    } else {
+        $contentData = [$page => []];
+    }
 }
 
 $pageNames = [
@@ -81,6 +202,9 @@ $pageNames = [
     'brand' => 'Brand Name',
     'common' => 'Common Text',
 ];
+
+// Extract the actual content (remove page wrapper if exists)
+$formData = isset($contentData[$page]) ? $contentData[$page] : $contentData;
 ?>
 <!doctype html>
 <html lang="en">
@@ -232,33 +356,125 @@ $pageNames = [
       padding: 30px;
     }
     
-    .editor-wrapper {
-      position: relative;
-    }
-    
-    textarea {
-      width: 100%;
-      min-height: 650px;
-      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    .form-section {
+      margin-bottom: 24px;
       padding: 20px;
-      border: 2px solid #e2e8f0;
+      background: #f7fafc;
       border-radius: 12px;
-      font-size: 13px;
-      line-height: 1.8;
-      resize: vertical;
-      background: #1a202c;
-      color: #e2e8f0;
-      transition: all 0.3s;
+      border-left: 4px solid #667eea;
     }
     
-    textarea:focus {
+    .section-header {
+      margin-bottom: 16px;
+    }
+    
+    .section-label {
+      font-size: 16px;
+      font-weight: 700;
+      color: #2d3748;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #4a5568;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #2d3748;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+    
+    .form-input:focus, .form-textarea:focus {
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
     
-    textarea::placeholder {
-      color: #718096;
+    .form-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    
+    .array-container {
+      margin: 16px 0;
+      padding: 16px;
+      background: #edf2f7;
+      border-radius: 8px;
+    }
+    
+    .array-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .array-item {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border: 2px solid #e2e8f0;
+      position: relative;
+    }
+    
+    .array-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: 600;
+      color: #4a5568;
+    }
+    
+    .array-item-content {
+      margin-top: 12px;
+    }
+    
+    .btn-add-item, .btn-remove-item {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .btn-add-item:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+    }
+    
+    .btn-remove-item {
+      background: #e53e3e;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    
+    .btn-remove-item:hover {
+      background: #c53030;
     }
     
     .editor-footer {
@@ -293,10 +509,6 @@ $pageNames = [
       box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
     }
     
-    .btn-save:active {
-      transform: translateY(0);
-    }
-    
     .status-message {
       padding: 12px 20px;
       border-radius: 10px;
@@ -306,6 +518,7 @@ $pageNames = [
       align-items: center;
       gap: 10px;
       animation: slideIn 0.3s ease-out;
+      margin-top: 20px;
     }
     
     @keyframes slideIn {
@@ -325,12 +538,6 @@ $pageNames = [
       border-left: 4px solid #48bb78;
     }
     
-    .status-error {
-      background: #fed7d7;
-      color: #742a2a;
-      border-left: 4px solid #e53e3e;
-    }
-    
     .info-text {
       color: #718096;
       font-size: 13px;
@@ -339,6 +546,83 @@ $pageNames = [
       gap: 8px;
     }
   </style>
+  <script>
+    function addArrayItem(prefix) {
+      const container = document.querySelector(`[data-prefix="${prefix}"]`);
+      const items = container.querySelectorAll('.array-item');
+      const index = items.length;
+      
+      // Clone the last item or create a new one
+      const lastItem = items[items.length - 1];
+      let newItem;
+      
+      if (lastItem) {
+        newItem = lastItem.cloneNode(true);
+        // Update input names with new index
+        newItem.querySelectorAll('input, textarea, select').forEach(input => {
+          if (input.name) {
+            // Replace the index in bracket notation
+            input.name = input.name.replace(/\[(\d+)\]/, `[${index}]`);
+            // Also handle nested brackets
+            input.name = input.name.replace(new RegExp(`\\[${index - 1}\\]`, 'g'), `[${index}]`);
+            input.value = '';
+          }
+        });
+        // Update item number display
+        const headerSpan = newItem.querySelector('.array-item-header span');
+        if (headerSpan) {
+          headerSpan.textContent = `Item ${index + 1}`;
+        }
+      } else {
+        newItem = createNewArrayItem(prefix, index);
+      }
+      
+      container.appendChild(newItem);
+    }
+    
+    function createNewArrayItem(prefix, index) {
+      const div = document.createElement('div');
+      div.className = 'array-item';
+      div.innerHTML = `
+        <div class="array-item-header">
+          <span>Item ${index + 1}</span>
+          <button type="button" class="btn-remove-item" onclick="removeArrayItem(this)"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="form-group">
+          <label>Item ${index + 1}</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" name="${prefix}[${index}]" class="form-input" placeholder="Enter value" style="flex: 1;">
+            <button type="button" class="btn-remove-item" onclick="removeArrayItem(this)"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+      `;
+      return div;
+    }
+    
+    function removeArrayItem(btn) {
+      if (confirm('Are you sure you want to remove this item?')) {
+        const item = btn.closest('.array-item');
+        const container = item.closest('.array-container');
+        item.remove();
+        
+        // Renumber remaining items
+        const remainingItems = container.querySelectorAll('.array-item');
+        remainingItems.forEach((item, newIndex) => {
+          // Update item number display
+          const headerSpan = item.querySelector('.array-item-header span');
+          if (headerSpan) {
+            headerSpan.textContent = `Item ${newIndex + 1}`;
+          }
+          // Update input names
+          item.querySelectorAll('input, textarea, select').forEach(input => {
+            if (input.name) {
+              input.name = input.name.replace(/\[(\d+)\]/, `[${newIndex}]`);
+            }
+          });
+        });
+      }
+    }
+  </script>
 </head>
 <body>
   <div class="header">
@@ -384,13 +668,7 @@ $pageNames = [
         <input type="hidden" name="lang" value="<?php echo htmlspecialchars($lang, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="page" value="<?php echo htmlspecialchars($page, ENT_QUOTES, 'UTF-8'); ?>">
         
-        <div class="editor-wrapper">
-          <textarea 
-            name="json" 
-            placeholder="Edit JSON content here... Make sure the JSON is valid!"
-            spellcheck="false"
-          ><?php echo htmlspecialchars($jsonText, ENT_QUOTES, 'UTF-8'); ?></textarea>
-        </div>
+        <?php echo generateFormFields($formData); ?>
         
         <div class="editor-footer">
           <div class="info-text">
@@ -403,8 +681,8 @@ $pageNames = [
         </div>
         
         <?php if ($status): ?>
-          <div class="status-message <?php echo strpos($status, 'Invalid') === 0 ? 'status-error' : 'status-success'; ?>">
-            <i class="fas <?php echo strpos($status, 'Invalid') === 0 ? 'fa-exclamation-circle' : 'fa-check-circle'; ?>"></i>
+          <div class="status-message status-success">
+            <i class="fas fa-check-circle"></i>
             <?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>
           </div>
         <?php endif; ?>
