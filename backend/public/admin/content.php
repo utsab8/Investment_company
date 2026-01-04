@@ -97,8 +97,8 @@ function generateFormFields($data, $prefix = '', $level = 0) {
                     $html .= '<div class="form-group">';
                     $html .= '<label for="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($fieldLabel, ENT_QUOTES, 'UTF-8') . '</label>';
                     
-                    // Check if this is an image field
-                    $isImageField = in_array(strtolower($key), ['image', 'img', 'photo', 'picture', 'icon', 'logo', 'banner', 'thumbnail']);
+                    // Check if this is an image field (including background images)
+                    $isImageField = in_array(strtolower($key), ['image', 'img', 'photo', 'picture', 'icon', 'logo', 'banner', 'thumbnail', 'background', 'bg', 'backgroundimage', 'bgimage']);
                     $isUrlField = is_string($value) && (strpos($value, 'http://') === 0 || strpos($value, 'https://') === 0 || strpos($value, '/') === 0);
                     
                     if ($isImageField || ($isUrlField && preg_match('/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i', $value))) {
@@ -246,81 +246,169 @@ $formData = isset($contentData[$page]) ? $contentData[$page] : $contentData;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       background: #f7fafc;
       color: #2d3748;
+      display: flex;
+      min-height: 100vh;
     }
     
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .sidebar {
+      width: 260px;
+      background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
       color: white;
-      padding: 20px 30px;
-      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-      position: sticky;
+      position: fixed;
+      left: 0;
       top: 0;
-      z-index: 100;
+      height: 100vh;
+      overflow-y: auto;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+      z-index: 200;
+      transition: transform 0.3s ease;
     }
     
-    .header-content {
-      max-width: 1400px;
-      margin: 0 auto;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    
-    .back-btn {
-      background: rgba(255, 255, 255, 0.2);
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 300;
+      background: #667eea;
       color: white;
-      padding: 10px 16px;
-      text-decoration: none;
+      border: none;
+      padding: 10px 15px;
       border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.3s;
+      cursor: pointer;
+      font-size: 18px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+      @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .sidebar-toggle {
+        display: block;
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .container {
+        padding: 15px;
+      }
+      
+      .editor-header {
+        padding: 15px 20px;
+      }
+      
+      .controls {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .control-group {
+        width: 100%;
+      }
+      
+      .control-group select {
+        width: 100%;
+      }
+      
+      .editor-body {
+        padding: 20px;
+      }
+      
+      .form-section {
+        padding: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .image-preview-container {
+        max-width: 100%;
+      }
+    }
+    
+    .sidebar-header {
+      padding: 25px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .sidebar-header h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 5px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
     
-    .back-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: translateX(-3px);
+    .sidebar-header p {
+      font-size: 12px;
+      opacity: 0.7;
     }
     
-    .header-left h2 {
-      font-size: 22px;
+    .sidebar-nav {
+      padding: 15px 0;
+    }
+    
+    .nav-section {
+      margin-bottom: 10px;
+    }
+    
+    .nav-section-title {
+      padding: 10px 20px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.6;
       font-weight: 600;
     }
     
-    .header-right {
+    .nav-item {
       display: flex;
       align-items: center;
-      gap: 15px;
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 14px;
-    }
-    
-    .header-right a {
-      color: white;
+      gap: 12px;
+      padding: 12px 20px;
+      color: rgba(255, 255, 255, 0.8);
       text-decoration: none;
-      padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
       transition: all 0.3s;
+      border-left: 3px solid transparent;
     }
     
-    .header-right a:hover {
-      background: rgba(255, 255, 255, 0.3);
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border-left-color: #667eea;
     }
+    
+    .nav-item.active {
+      background: rgba(102, 126, 234, 0.2);
+      color: white;
+      border-left-color: #667eea;
+    }
+    
+    .nav-item i {
+      width: 20px;
+      font-size: 16px;
+    }
+    
+    .main-content {
+      flex: 1;
+      margin-left: 260px;
+      min-height: 100vh;
+    }
+    
     
     .container {
       max-width: 1400px;
-      margin: 30px auto;
-      padding: 0 30px;
+      margin: 0 auto;
+      padding: 30px;
+      width: 100%;
     }
     
     .editor-card {
@@ -639,6 +727,20 @@ $formData = isset($contentData[$page]) ? $contentData[$page] : $contentData;
     }
   </style>
   <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('open');
+    }
+    
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(e) {
+      const sidebar = document.getElementById('sidebar');
+      const toggle = document.querySelector('.sidebar-toggle');
+      if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !toggle.contains(e.target)) {
+        sidebar.classList.remove('open');
+      }
+    });
+    
     function addArrayItem(prefix) {
       const container = document.querySelector(`[data-prefix="${prefix}"]`);
       const items = container.querySelectorAll('.array-item');
@@ -792,22 +894,12 @@ $formData = isset($contentData[$page]) ? $contentData[$page] : $contentData;
   </script>
 </head>
 <body>
-  <div class="header">
-    <div class="header-content">
-      <div class="header-left">
-        <a href="dashboard.php" class="back-btn">
-          <i class="fas fa-arrow-left"></i> Dashboard
-        </a>
-        <h2><i class="fas fa-edit"></i> Content Editor</h2>
-      </div>
-      <div class="header-right">
-        <span><i class="fas fa-user-circle"></i> <?php echo htmlspecialchars($_SESSION['user']['name'], ENT_QUOTES, 'UTF-8'); ?></span>
-        <a href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
-      </div>
-    </div>
-  </div>
+  <button class="sidebar-toggle" onclick="toggleSidebar()">
+    <i class="fas fa-bars"></i>
+  </button>
 
-  <div class="container">
+  <div class="main-content">
+    <div class="container">
     <div class="editor-card">
       <form method="get" class="editor-header">
         <div class="controls">
@@ -854,6 +946,78 @@ $formData = isset($contentData[$page]) ? $contentData[$page] : $contentData;
           </div>
         <?php endif; ?>
       </form>
+    </div>
+  </div>
+  </div>
+  
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h3><i class="fas fa-shield-alt"></i> Admin Panel</h3>
+      <p>Content Management</p>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Pages</div>
+        <a href="dashboard.php" class="nav-item">
+          <i class="fas fa-tachometer-alt"></i>
+          <span>Dashboard</span>
+        </a>
+        <?php
+        $pageIcons = [
+            'home' => 'fa-home',
+            'about' => 'fa-info-circle',
+            'services' => 'fa-briefcase',
+            'process' => 'fa-cogs',
+            'plansPage' => 'fa-chart-line',
+            'reports' => 'fa-file-alt',
+            'blogPage' => 'fa-blog',
+            'faq' => 'fa-question-circle',
+            'contact' => 'fa-envelope',
+        ];
+        foreach ($pages as $p):
+            if (isset($pageIcons[$p])):
+                $isActive = $page === $p;
+        ?>
+        <a href="content.php?page=<?php echo $p; ?>&lang=<?php echo $lang; ?>" 
+           class="nav-item <?php echo $isActive ? 'active' : ''; ?>">
+          <i class="fas <?php echo $pageIcons[$p]; ?>"></i>
+          <span><?php echo isset($pageNames[$p]) ? $pageNames[$p] : ucfirst($p); ?></span>
+        </a>
+        <?php
+            endif;
+        endforeach;
+        ?>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">Settings</div>
+        <a href="content.php?page=footer&lang=<?php echo $lang; ?>" 
+           class="nav-item <?php echo $page === 'footer' ? 'active' : ''; ?>">
+          <i class="fas fa-window-minimize"></i>
+          <span>Footer</span>
+        </a>
+        <a href="content.php?page=nav&lang=<?php echo $lang; ?>" 
+           class="nav-item <?php echo $page === 'nav' ? 'active' : ''; ?>">
+          <i class="fas fa-bars"></i>
+          <span>Navigation</span>
+        </a>
+        <a href="content.php?page=brand&lang=<?php echo $lang; ?>" 
+           class="nav-item <?php echo $page === 'brand' ? 'active' : ''; ?>">
+          <i class="fas fa-tag"></i>
+          <span>Brand</span>
+        </a>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-title">System</div>
+        <a href="submissions.php" class="nav-item">
+          <i class="fas fa-inbox"></i>
+          <span>Contact Submissions</span>
+        </a>
+        <a href="logout.php" class="nav-item">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Logout</span>
+        </a>
+      </div>
     </div>
   </div>
 </body>

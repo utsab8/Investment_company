@@ -51,6 +51,10 @@ if ($segments[0] === 'public' && ($segments[1] ?? '') === 'i18n' && $method === 
     handle_public_i18n($pdo, $lang);
 }
 
+if ($segments[0] === 'public' && ($segments[1] ?? '') === 'contact' && $method === 'POST') {
+    handle_contact_submission($pdo);
+}
+
 if ($segments[0] === 'admin') {
     $payload = require_auth_or_fail($config['jwt']);
 
@@ -166,6 +170,28 @@ function load_translation(PDO $pdo, string $lang): array
         $translation = merge_translation($translation, $data);
     }
     return $translation;
+}
+
+function handle_contact_submission(PDO $pdo): void
+{
+    $body = read_json_body();
+    require_fields($body, ['name', 'email', 'subject', 'message']);
+
+    // Validate email
+    if (!filter_var($body['email'], FILTER_VALIDATE_EMAIL)) {
+        json_response(['error' => 'Invalid email address'], 400);
+    }
+
+    // Insert submission
+    $stmt = $pdo->prepare('INSERT INTO contact_submissions (name, email, subject, message, status) VALUES (:name, :email, :subject, :message, "new")');
+    $stmt->execute([
+        'name' => $body['name'],
+        'email' => $body['email'],
+        'subject' => $body['subject'],
+        'message' => $body['message'],
+    ]);
+
+    json_response(['success' => true, 'message' => 'Thank you for your message! We will contact you shortly.']);
 }
 
 function require_auth_or_fail(array $jwtConfig)

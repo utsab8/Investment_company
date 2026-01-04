@@ -13,6 +13,17 @@ const Home = () => {
   const blog = t('home.blog', { returnObjects: true });
   const newsletter = t('home.newsletter', { returnObjects: true });
 
+  // Get background image from translations, fallback to default
+  const backgroundImage = t('home.hero.background') || 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80';
+  
+  // Build background style
+  const heroStyle = {
+    background: `linear-gradient(rgba(10, 37, 64, 0.8), rgba(10, 37, 64, 0.7)), url(${backgroundImage})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundAttachment: 'fixed'
+  };
+
   const handleSubscribe = (e) => {
     e.preventDefault();
     alert(newsletter.success);
@@ -21,7 +32,7 @@ const Home = () => {
   return (
     <div className="home">
       {/* Hero Section */}
-      <section className="hero">
+      <section className="hero" style={heroStyle}>
         <div className="container hero-content">
           <span className="hero-subtitle">{hero.subtitle}</span>
           <h1 className="hero-title">{hero.title}</h1>

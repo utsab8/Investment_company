@@ -51,3 +51,4 @@ Each block is a partial translation tree (e.g., `home`, `about`, `footer`). Upda
 - CORS default is `*`; tighten `allowed_origin` in `config.php` for production.
 - If you add new translation keys in the frontend, seed them in `content_blocks` to keep API responses complete.
 
+

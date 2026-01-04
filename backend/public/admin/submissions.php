@@ -11,32 +11,27 @@ require_once __DIR__ . '/../../db.php';
 
 $pdo = get_pdo($config['db']);
 
-// Get all content blocks
-$stmt = $pdo->query('SELECT page, lang, data, updated_at FROM content_blocks ORDER BY page, lang');
-$allContent = $stmt->fetchAll();
+// Handle status update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
+    $id = (int)$_POST['id'];
+    $status = $_POST['status'];
+    
+    $stmt = $pdo->prepare('UPDATE contact_submissions SET status = :status WHERE id = :id');
+    $stmt->execute(['status' => $status, 'id' => $id]);
+    header('Location: submissions.php');
+    exit;
+}
 
-$pages = [
-    'home' => 'Home Page',
-    'about' => 'About Us',
-    'services' => 'Services',
-    'process' => 'Process',
-    'plansPage' => 'Investment Plans',
-    'reports' => 'Reports',
-    'blogPage' => 'Blog',
-    'faq' => 'FAQ',
-    'contact' => 'Contact',
-    'footer' => 'Footer',
-    'nav' => 'Navigation',
-    'brand' => 'Brand Name',
-    'common' => 'Common Text',
-];
+// Get all submissions
+$stmt = $pdo->query('SELECT id, name, email, subject, message, status, created_at FROM contact_submissions ORDER BY created_at DESC');
+$submissions = $stmt->fetchAll();
 ?>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Dashboard - Investment Company</title>
+  <title>Contact Submissions - Admin Panel</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * { 
@@ -49,7 +44,6 @@ $pages = [
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       background: #f7fafc;
       color: #2d3748;
-      line-height: 1.6;
       display: flex;
       min-height: 100vh;
     }
@@ -107,14 +101,28 @@ $pages = [
       
       table {
         font-size: 12px;
+        display: block;
+        overflow-x: auto;
       }
       
       th, td {
         padding: 10px 12px;
       }
       
-      .data-preview {
+      .message-preview {
         max-width: 150px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .table-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      
+      .message-preview {
+        max-width: 100px;
       }
     }
     
@@ -206,6 +214,9 @@ $pages = [
       background: #f7fafc;
       padding: 20px;
       border-bottom: 2px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     
     .table-header h2 {
@@ -243,66 +254,76 @@ $pages = [
       background: #f7fafc;
     }
     
-    .page-name {
-      font-weight: 600;
-      color: #667eea;
-    }
-    
-    .lang-badge {
+    .status-badge {
       display: inline-block;
       padding: 4px 12px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: 500;
-      background: #edf2f7;
-      color: #4a5568;
     }
     
-    .lang-badge.en {
-      background: #c6f6d5;
-      color: #22543d;
-    }
-    
-    .lang-badge.ne {
+    .status-new {
       background: #bee3f8;
       color: #2c5282;
     }
     
-    .edit-link {
-      color: #667eea;
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.3s;
+    .status-read {
+      background: #c6f6d5;
+      color: #22543d;
     }
     
-    .edit-link:hover {
-      color: #5568d3;
-      text-decoration: underline;
+    .status-replied {
+      background: #fed7d7;
+      color: #742a2a;
     }
     
-    .data-preview {
+    .message-preview {
       max-width: 300px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       color: #718096;
-      font-size: 13px;
     }
     
-    .updated-time {
-      color: #718096;
-      font-size: 13px;
+    .status-form {
+      display: inline-block;
     }
     
-    @media (max-width: 480px) {
-      table {
-        display: block;
-        overflow-x: auto;
-      }
-      
-      .data-preview {
-        max-width: 100px;
-      }
+    .status-select {
+      padding: 6px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    
+    .status-select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .btn-update {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    
+    .btn-update:hover {
+      background: #5568d3;
+    }
+    
+    .email-link {
+      color: #667eea;
+      text-decoration: none;
+    }
+    
+    .email-link:hover {
+      text-decoration: underline;
     }
   </style>
   <script>
@@ -333,33 +354,46 @@ $pages = [
     <div class="sidebar-nav">
       <div class="nav-section">
         <div class="nav-section-title">Pages</div>
-        <a href="dashboard.php" class="nav-item active">
+        <a href="dashboard.php" class="nav-item">
           <i class="fas fa-tachometer-alt"></i>
           <span>Dashboard</span>
         </a>
-        <?php
-        $pageIcons = [
-            'home' => 'fa-home',
-            'about' => 'fa-info-circle',
-            'services' => 'fa-briefcase',
-            'process' => 'fa-cogs',
-            'plansPage' => 'fa-chart-line',
-            'reports' => 'fa-file-alt',
-            'blogPage' => 'fa-blog',
-            'faq' => 'fa-question-circle',
-            'contact' => 'fa-envelope',
-        ];
-        foreach ($pages as $pageKey => $pageName):
-            if (isset($pageIcons[$pageKey])):
-        ?>
-        <a href="content.php?page=<?php echo $pageKey; ?>&lang=en" class="nav-item">
-          <i class="fas <?php echo $pageIcons[$pageKey]; ?>"></i>
-          <span><?php echo htmlspecialchars($pageName, ENT_QUOTES, 'UTF-8'); ?></span>
+        <a href="content.php?page=home&lang=en" class="nav-item">
+          <i class="fas fa-home"></i>
+          <span>Home Page</span>
         </a>
-        <?php
-            endif;
-        endforeach;
-        ?>
+        <a href="content.php?page=about&lang=en" class="nav-item">
+          <i class="fas fa-info-circle"></i>
+          <span>About Us</span>
+        </a>
+        <a href="content.php?page=services&lang=en" class="nav-item">
+          <i class="fas fa-briefcase"></i>
+          <span>Services</span>
+        </a>
+        <a href="content.php?page=process&lang=en" class="nav-item">
+          <i class="fas fa-cogs"></i>
+          <span>Process</span>
+        </a>
+        <a href="content.php?page=plansPage&lang=en" class="nav-item">
+          <i class="fas fa-chart-line"></i>
+          <span>Investment Plans</span>
+        </a>
+        <a href="content.php?page=reports&lang=en" class="nav-item">
+          <i class="fas fa-file-alt"></i>
+          <span>Reports</span>
+        </a>
+        <a href="content.php?page=blogPage&lang=en" class="nav-item">
+          <i class="fas fa-blog"></i>
+          <span>Blog</span>
+        </a>
+        <a href="content.php?page=faq&lang=en" class="nav-item">
+          <i class="fas fa-question-circle"></i>
+          <span>FAQ</span>
+        </a>
+        <a href="content.php?page=contact&lang=en" class="nav-item">
+          <i class="fas fa-envelope"></i>
+          <span>Contact</span>
+        </a>
       </div>
       <div class="nav-section">
         <div class="nav-section-title">Settings</div>
@@ -378,7 +412,7 @@ $pages = [
       </div>
       <div class="nav-section">
         <div class="nav-section-title">System</div>
-        <a href="submissions.php" class="nav-item">
+        <a href="submissions.php" class="nav-item active">
           <i class="fas fa-inbox"></i>
           <span>Contact Submissions</span>
         </a>
@@ -394,50 +428,64 @@ $pages = [
     <div class="container">
       <div class="data-table">
         <div class="table-header">
-          <h2><i class="fas fa-database"></i> All Content Data</h2>
+          <h2><i class="fas fa-envelope"></i> All Contact Form Submissions</h2>
+          <span style="color: #718096; font-size: 14px;">Total: <?php echo count($submissions); ?></span>
         </div>
         <table>
           <thead>
             <tr>
-              <th>Page</th>
-              <th>Language</th>
-              <th>Data Preview</th>
-              <th>Last Updated</th>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Subject</th>
+              <th>Message</th>
+              <th>Status</th>
+              <th>Date</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            <?php if (empty($allContent)): ?>
+            <?php if (empty($submissions)): ?>
               <tr>
-                <td colspan="5" style="text-align: center; padding: 40px; color: #718096;">
-                  No content blocks found.
+                <td colspan="8" style="text-align: center; padding: 40px; color: #718096;">
+                  No contact submissions yet.
                 </td>
               </tr>
             <?php else: ?>
-              <?php foreach ($allContent as $row): 
-                $pageName = isset($pages[$row['page']]) ? $pages[$row['page']] : ucfirst($row['page']);
-                $data = json_decode($row['data'], true);
-                $preview = json_encode($data, JSON_UNESCAPED_UNICODE);
-                $preview = strlen($preview) > 100 ? substr($preview, 0, 100) . '...' : $preview;
-                $updated = date('Y-m-d H:i', strtotime($row['updated_at']));
+              <?php foreach ($submissions as $sub): 
+                $created = date('Y-m-d H:i', strtotime($sub['created_at']));
+                $messagePreview = strlen($sub['message']) > 100 ? substr($sub['message'], 0, 100) . '...' : $sub['message'];
               ?>
               <tr>
-                <td><span class="page-name"><?php echo htmlspecialchars($pageName, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                <td>#<?php echo $sub['id']; ?></td>
+                <td><strong><?php echo htmlspecialchars($sub['name'], ENT_QUOTES, 'UTF-8'); ?></strong></td>
                 <td>
-                  <span class="lang-badge <?php echo $row['lang']; ?>">
-                    <?php echo strtoupper($row['lang']); ?>
-                  </span>
+                  <a href="mailto:<?php echo htmlspecialchars($sub['email'], ENT_QUOTES, 'UTF-8'); ?>" class="email-link">
+                    <?php echo htmlspecialchars($sub['email'], ENT_QUOTES, 'UTF-8'); ?>
+                  </a>
                 </td>
+                <td><?php echo htmlspecialchars($sub['subject'], ENT_QUOTES, 'UTF-8'); ?></td>
                 <td>
-                  <div class="data-preview" title="<?php echo htmlspecialchars($preview, ENT_QUOTES, 'UTF-8'); ?>">
-                    <?php echo htmlspecialchars($preview, ENT_QUOTES, 'UTF-8'); ?>
+                  <div class="message-preview" title="<?php echo htmlspecialchars($sub['message'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php echo htmlspecialchars($messagePreview, ENT_QUOTES, 'UTF-8'); ?>
                   </div>
                 </td>
-                <td class="updated-time"><?php echo htmlspecialchars($updated, ENT_QUOTES, 'UTF-8'); ?></td>
                 <td>
-                  <a href="content.php?page=<?php echo htmlspecialchars($row['page'], ENT_QUOTES, 'UTF-8'); ?>&lang=<?php echo htmlspecialchars($row['lang'], ENT_QUOTES, 'UTF-8'); ?>" class="edit-link">
-                    <i class="fas fa-edit"></i> Edit
-                  </a>
+                  <span class="status-badge status-<?php echo $sub['status']; ?>">
+                    <?php echo ucfirst($sub['status']); ?>
+                  </span>
+                </td>
+                <td><?php echo htmlspecialchars($created, ENT_QUOTES, 'UTF-8'); ?></td>
+                <td>
+                  <form method="post" class="status-form">
+                    <input type="hidden" name="id" value="<?php echo $sub['id']; ?>">
+                    <select name="status" class="status-select" onchange="this.form.submit()">
+                      <option value="new" <?php echo $sub['status'] === 'new' ? 'selected' : ''; ?>>New</option>
+                      <option value="read" <?php echo $sub['status'] === 'read' ? 'selected' : ''; ?>>Read</option>
+                      <option value="replied" <?php echo $sub['status'] === 'replied' ? 'selected' : ''; ?>>Replied</option>
+                    </select>
+                    <input type="hidden" name="update_status" value="1">
+                  </form>
                 </td>
               </tr>
               <?php endforeach; ?>
@@ -449,3 +497,4 @@ $pages = [
   </div>
 </body>
 </html>
+

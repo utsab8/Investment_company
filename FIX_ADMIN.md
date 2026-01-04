@@ -67,3 +67,4 @@ http://localhost:8000/admin/login.php
 ## What Was Fixed
 The `backend/public/index.php` router was intercepting all requests, including admin panel requests. Now it checks if the request is for the admin panel and returns `false` to let PHP serve the file directly.
 
+

@@ -19,3 +19,4 @@ function get_pdo(array $config): PDO
     return new PDO($dsn, $config['user'], $config['pass'], $options);
 }
 
+

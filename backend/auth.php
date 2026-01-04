@@ -55,3 +55,4 @@ function base64url_decode(string $data): string
     return base64_decode(strtr($data, '-_', '+/'));
 }
 
+

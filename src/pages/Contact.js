@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { API_BASE_URL } from '../config';
 import './Contact.css';
 
 const Contact = () => {
@@ -14,6 +15,8 @@ const Contact = () => {
     subject: subjectOptions[0],
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null);
 
   useEffect(() => {
     setFormData((prev) => ({
@@ -29,10 +32,33 @@ const Contact = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert(t('contact.successMessage'));
-    setFormData({ name: '', email: '', subject: subjectOptions[0], message: '' });
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmitStatus({ type: 'success', message: data.message || t('contact.successMessage') });
+        setFormData({ name: '', email: '', subject: subjectOptions[0], message: '' });
+      } else {
+        setSubmitStatus({ type: 'error', message: data.error || 'Failed to send message. Please try again.' });
+      }
+    } catch (error) {
+      setSubmitStatus({ type: 'error', message: 'Network error. Please check your connection and try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -95,6 +121,18 @@ const Contact = () => {
 
             <div className="contact-form-wrapper">
               <h2 className="text-primary" style={{ marginBottom: '30px' }}>{t('contact.formTitle')}</h2>
+              {submitStatus && (
+                <div className={`submit-message ${submitStatus.type}`} style={{
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  backgroundColor: submitStatus.type === 'success' ? '#c6f6d5' : '#fed7d7',
+                  color: submitStatus.type === 'success' ? '#22543d' : '#742a2a',
+                  border: `1px solid ${submitStatus.type === 'success' ? '#48bb78' : '#e53e3e'}`
+                }}>
+                  {submitStatus.message}
+                </div>
+              )}
               <form onSubmit={handleSubmit} className="contact-form">
                 <div className="form-group">
                   <label>{t('contact.fields.nameLabel')}</label>
@@ -105,6 +143,7 @@ const Contact = () => {
                     value={formData.name}
                     onChange={handleChange}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="form-group">
@@ -116,6 +155,7 @@ const Contact = () => {
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="form-group">
@@ -124,6 +164,7 @@ const Contact = () => {
                     name="subject"
                     value={formData.subject}
                     onChange={handleChange}
+                    disabled={isSubmitting}
                   >
                     {subjectOptions.map((option, idx) => (
                       <option key={idx}>{option}</option>
@@ -139,9 +180,12 @@ const Contact = () => {
                     value={formData.message}
                     onChange={handleChange}
                     required
+                    disabled={isSubmitting}
                   ></textarea>
                 </div>
-                <button type="submit" className="btn btn-primary">{t('contact.submitText')}</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Sending...' : t('contact.submitText')}
+                </button>
               </form>
             </div>
           </div>
