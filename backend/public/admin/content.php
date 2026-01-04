@@ -97,10 +97,32 @@ function generateFormFields($data, $prefix = '', $level = 0) {
                     $html .= '<div class="form-group">';
                     $html .= '<label for="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($fieldLabel, ENT_QUOTES, 'UTF-8') . '</label>';
                     
-                    // Use textarea for longer text
-                    if (is_string($value) && strlen($value) > 100) {
+                    // Check if this is an image field
+                    $isImageField = in_array(strtolower($key), ['image', 'img', 'photo', 'picture', 'icon', 'logo', 'banner', 'thumbnail']);
+                    $isUrlField = is_string($value) && (strpos($value, 'http://') === 0 || strpos($value, 'https://') === 0 || strpos($value, '/') === 0);
+                    
+                    if ($isImageField || ($isUrlField && preg_match('/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i', $value))) {
+                        // Image upload field
+                        $html .= '<div class="image-upload-wrapper">';
+                        $html .= '<div class="image-preview-container">';
+                        if (!empty($value)) {
+                            $previewUrl = (strpos($value, 'http') === 0 || strpos($value, '/') === 0) ? $value : '/uploads/' . $value;
+                            $html .= '<img src="' . htmlspecialchars($previewUrl, ENT_QUOTES, 'UTF-8') . '" alt="Preview" class="image-preview" onerror="this.style.display=\'none\'">';
+                        }
+                        $html .= '</div>';
+                        $html .= '<div class="image-upload-controls">';
+                        $html .= '<input type="text" name="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" id="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '" class="form-input image-url-input" placeholder="Image URL or upload from device">';
+                        $html .= '<label class="btn-upload-image" for="upload_' . htmlspecialchars(str_replace(['[', ']'], ['_', '_'], $fieldName), ENT_QUOTES, 'UTF-8') . '">';
+                        $html .= '<i class="fas fa-upload"></i> Choose from Device';
+                        $html .= '</label>';
+                        $html .= '<input type="file" id="upload_' . htmlspecialchars(str_replace(['[', ']'], ['_', '_'], $fieldName), ENT_QUOTES, 'UTF-8') . '" class="image-file-input" accept="image/*" data-field="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" style="display: none;">';
+                        $html .= '</div>';
+                        $html .= '</div>';
+                    } else if (is_string($value) && strlen($value) > 100) {
+                        // Use textarea for longer text
                         $html .= '<textarea name="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" id="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" class="form-textarea" rows="4">' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '</textarea>';
                     } else {
+                        // Regular text input
                         $html .= '<input type="text" name="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" id="' . htmlspecialchars($fieldName, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '" class="form-input">';
                     }
                     $html .= '</div>';
@@ -545,6 +567,76 @@ $formData = isset($contentData[$page]) ? $contentData[$page] : $contentData;
       align-items: center;
       gap: 8px;
     }
+    
+    .image-upload-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .image-preview-container {
+      width: 100%;
+      max-width: 400px;
+      height: 200px;
+      border: 2px dashed #e2e8f0;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f7fafc;
+      overflow: hidden;
+    }
+    
+    .image-preview {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    
+    .image-upload-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    .image-url-input {
+      flex: 1;
+    }
+    
+    .btn-upload-image {
+      background: #48bb78;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    
+    .btn-upload-image:hover {
+      background: #38a169;
+      transform: translateY(-2px);
+    }
+    
+    .image-file-input {
+      display: none;
+    }
+    
+    .uploading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    
+    .upload-success {
+      color: #48bb78;
+      font-size: 12px;
+      margin-top: 4px;
+    }
   </style>
   <script>
     function addArrayItem(prefix) {
@@ -622,6 +714,81 @@ $formData = isset($contentData[$page]) ? $contentData[$page] : $contentData;
         });
       }
     }
+    
+    // Image upload functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const fileInputs = document.querySelectorAll('.image-file-input');
+      
+      fileInputs.forEach(input => {
+        input.addEventListener('change', function(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          
+          const fieldName = this.getAttribute('data-field');
+          const urlInput = document.querySelector(`input[name="${fieldName}"]`);
+          const wrapper = urlInput.closest('.image-upload-wrapper');
+          const previewContainer = wrapper.querySelector('.image-preview-container');
+          const uploadBtn = wrapper.querySelector('.btn-upload-image');
+          
+          // Show loading state
+          wrapper.classList.add('uploading');
+          uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+          
+          // Create FormData
+          const formData = new FormData();
+          formData.append('image', file);
+          
+          // Upload file
+          fetch('upload.php', {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            wrapper.classList.remove('uploading');
+            
+            if (data.success) {
+              // Update URL input
+              urlInput.value = data.url;
+              
+              // Update preview
+              const img = previewContainer.querySelector('.image-preview');
+              if (img) {
+                img.src = data.url;
+                img.style.display = 'block';
+              } else {
+                const newImg = document.createElement('img');
+                newImg.src = data.url;
+                newImg.alt = 'Preview';
+                newImg.className = 'image-preview';
+                previewContainer.innerHTML = '';
+                previewContainer.appendChild(newImg);
+              }
+              
+              // Show success message
+              uploadBtn.innerHTML = '<i class="fas fa-check"></i> Uploaded!';
+              uploadBtn.style.background = '#48bb78';
+              
+              setTimeout(() => {
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Choose from Device';
+                uploadBtn.style.background = '';
+              }, 2000);
+            } else {
+              alert('Upload failed: ' + (data.error || 'Unknown error'));
+              uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Choose from Device';
+            }
+          })
+          .catch(error => {
+            wrapper.classList.remove('uploading');
+            alert('Upload error: ' + error.message);
+            uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Choose from Device';
+          });
+          
+          // Reset file input
+          this.value = '';
+        });
+      });
+    });
   </script>
 </head>
 <body>

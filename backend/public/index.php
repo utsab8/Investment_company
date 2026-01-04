@@ -12,8 +12,8 @@ if (strpos($path, 'admin') === 0) {
     return false;
 }
 
-// If it's a direct file request (has extension), don't route it
-if (preg_match('/\.(php|html|css|js|png|jpg|jpeg|gif|ico|svg)$/i', $path)) {
+// If it's a direct file request (has extension) or uploads directory, don't route it
+if (preg_match('/\.(php|html|css|js|png|jpg|jpeg|gif|ico|svg|webp)$/i', $path) || strpos($path, 'uploads/') === 0) {
     return false;
 }
 
