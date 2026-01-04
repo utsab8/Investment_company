@@ -6,7 +6,7 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $path = trim($uri, '/');
 
 // If it's an admin panel request, let PHP serve it directly (don't route it)
-if (strpos($path, 'admin/') === 0 || $path === 'admin') {
+if (strpos($path, 'admin') === 0) {
     // Let PHP's built-in server handle admin files directly
     // Return false to tell PHP server to serve the file if it exists
     return false;

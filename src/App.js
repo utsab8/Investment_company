@@ -34,6 +34,11 @@ const Loading = () => {
 };
 
 function App() {
+  // Don't render React app for backend/admin routes - let proxy handle it
+  if (window.location.pathname.startsWith('/backend')) {
+    return null; // Return null so proxy can handle the request
+  }
+
   return (
     <Router>
       <div className="App">
