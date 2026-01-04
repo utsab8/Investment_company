@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email' => $user['email'],
                 'role' => $user['role'],
             ];
-            header('Location: content.php');
+            header('Location: dashboard.php');
             exit;
         } else {
             $error = 'Invalid username or password';
