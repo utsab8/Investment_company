@@ -1,0 +1,34 @@
+:root {
+    /* Colors */
+    --primary-color: #0A2540; /* Navy Blue */
+    --primary-light: #163a5f;
+    --secondary-color: #FFFFFF; /* White */
+    --accent-color: #C9A24D; /* Gold */
+    --accent-hover: #b08d3b;
+    --text-color: #6B7280; /* Gray for body text */
+    --heading-color: #0A2540; /* Navy for headings */
+    --light-bg: #f3f4f6;
+    --border-color: #e5e7eb;
+
+    /* Typography */
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Spacing */
+    --section-padding: 80px 0;
+    --container-width: 1200px;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* Transitions */
+    --transition: all 0.3s ease;
+}
+
+
+
+
+
+
